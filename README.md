@@ -19,7 +19,7 @@ O projeto demonstra dois usos complementares de IA Generativa: como **funcionali
 
 ## Demonstração
 
-- **Link da aplicação:** em breve _(será publicado no GitHub Pages)_
+- [**Link da aplicação:**](https://andymarksss.github.io/Copiloto-Inteligente/) 
 
 ## Problema proposto
 
@@ -95,16 +95,20 @@ O contexto é enviado ao backend via **prompt + base de conhecimento simulada** 
 
 ```text
 copiloto-corporativo-inteligente/
-├── index.html            # Estrutura da interface
-├── style.css             # Estilos, temas claro/escuro e responsividade
-├── script.js             # Lógica do chat, integração e configuração (CONFIG)
-├── knowledge-base.js     # Base de conhecimento simulada
+├── index.html                    # Ponto de entrada (permanece na raiz p/ GitHub Pages)
 ├── README.md
+├── assets/
+│   ├── css/
+│   │   └── style.css             # Estilos, temas claro/escuro e responsividade
+│   ├── js/
+│   │   ├── knowledge-base.js     # Base de conhecimento simulada (carrega primeiro)
+│   │   └── script.js             # Lógica do chat, integração e configuração (CONFIG)
+│   └── prints/                   # Capturas de tela da aplicação
 ├── appsscript/
-│   └── Code.gs           # Backend em Google Apps Script (Web App)
+│   └── Code.gs                   # Backend em Google Apps Script (Web App)
 └── docs/
-    ├── PROMPTS.md
-    └── PASSO_A_PASSO.md
+    ├── PASSO_A_PASSO.md
+    └── PROMPTS.md
 ```
 
 ## Como executar localmente
@@ -112,10 +116,10 @@ copiloto-corporativo-inteligente/
 1. Baixe ou clone este repositório.
 2. Abra a pasta no **VS Code**.
 3. Abra o arquivo `index.html` com a extensão **Live Server** (ou diretamente no navegador).
-4. **Para usar sem a Gemini** (modo demonstração): mantenha `DEMO_MODE: true` **ou** deixe `APPS_SCRIPT_URL` vazia em `CONFIG` (`script.js`). As respostas virão do fallback local.
+4. **Para usar sem a Gemini** (modo demonstração): mantenha `DEMO_MODE: true` **ou** deixe `APPS_SCRIPT_URL` vazia em `CONFIG` (`assets/js/script.js`). As respostas virão do fallback local.
 5. **Para usar com a Gemini** (IA real): configure o Google Apps Script e a URL do Web App conforme a seção abaixo.
 
-A configuração fica na constante `CONFIG`, no início de `script.js`:
+A configuração fica na constante `CONFIG`, no início de `assets/js/script.js`:
 
 ```js
 const CONFIG = {
@@ -133,7 +137,7 @@ const CONFIG = {
 4. Em **Configurações do projeto → Propriedades do script**, crie uma propriedade chamada `GEMINI_API_KEY` com o valor da sua chave.
 5. Publique o projeto como **Web App** (implantar → nova implantação → tipo *App da Web*).
 6. Copie a **URL de implantação** (terminada em `/exec`).
-7. Cole essa URL em `CONFIG.APPS_SCRIPT_URL`, no `script.js`.
+7. Cole essa URL em `CONFIG.APPS_SCRIPT_URL`, no `assets/js/script.js`.
 8. Defina `DEMO_MODE` como `false`.
 9. **Nunca** coloque a API Key no frontend — ela deve permanecer apenas nas propriedades do Apps Script.
 
