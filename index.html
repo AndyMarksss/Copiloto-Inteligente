@@ -152,11 +152,14 @@
         <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
 
         <form id="chatForm" class="chat-form">
-          <textarea id="questionInput" rows="1" aria-label="Digite sua pergunta" placeholder="Digite sua pergunta e pressione Enter..." required></textarea>
+          <textarea id="questionInput" rows="1" maxlength="1000" aria-label="Digite sua pergunta" placeholder="Digite sua pergunta e pressione Enter..." required></textarea>
           <button type="submit" id="sendButton" class="btn btn-primary" aria-label="Enviar pergunta">
             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> <span id="sendLabel">Enviar</span>
           </button>
-          <small class="form-hint">Pressione <strong>Enter</strong> para enviar · <strong>Shift + Enter</strong> para quebrar linha</small>
+          <div class="composer-footer">
+            <small class="form-hint">Pressione <strong>Enter</strong> para enviar · <strong>Shift + Enter</strong> para quebrar linha</small>
+            <span class="char-counter" id="charCounter" aria-live="polite" aria-label="Caracteres usados">0/1000</span>
+          </div>
         </form>
 
         <!-- Overlay + painel de sugestões (popover no desktop, bottom sheet no mobile) -->

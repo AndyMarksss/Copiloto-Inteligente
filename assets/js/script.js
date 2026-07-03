@@ -372,38 +372,137 @@ function setLoading(isLoading) {
 }
 
 function classifyAgent(question) {
-  const normalized = removeAccents(question.toLowerCase());
+  const normalized = normalizeForMatch(question);
 
   // A ordem importa: categorias mais específicas primeiro.
   // Governança e Segurança vêm antes de TI porque "dados sensíveis" e
   // "senha compartilhada" devem cair na área correta mesmo citando "senha".
   const categories = [
-    { agent: 'governanca', keywords: ['ia', 'inteligencia artificial', 'ia generativa', 'prompt', 'chatgpt', 'gemini', 'governanca', 'resposta inventada'] },
-    { agent: 'seguranca', keywords: ['dados sensiveis', 'lgpd', 'privacidade', 'compartilhar senha', 'senha compartilhada', 'compartilhar', 'phishing', 'vazamento', 'confidencial', 'seguranca'] },
-    { agent: 'rh', keywords: ['rh', 'beneficio', 'ferias', 'holerite', 'ponto', 'colaborador', 'cadastro', 'convenio'] },
-    { agent: 'ti', keywords: ['senha', 'login', 'computador', 'notebook', 'impressora', 'internet', 'wifi', 'sistema', 'chamado', 'suporte', 'equipamento'] },
-    { agent: 'procedimentos', keywords: ['procedimento', 'politica', 'manual', 'treinamento', 'processo', 'fluxo'] }
+    { agent: 'governanca', keywords: ['ia', 'inteligencia artificial', 'ia generativa', 'prompt', 'chatgpt', 'gemini', 'governanca', 'resposta inventada', 'inventou', 'alucinacao', 'resposta errada', 'dados sensiveis', 'cpf', 'aluno', 'documento interno', 'colar dados', 'posso usar ia', 'usar ia'] },
+    { agent: 'seguranca', keywords: ['lgpd', 'privacidade', 'compartilhar senha', 'senha compartilhada', 'compartilhar', 'phishing', 'link suspeito', 'email suspeito', 'golpe', 'vazamento', 'confidencial', 'seguranca', 'credenciais', 'incidente', 'acesso indevido', 'bloqueio', 'bloquear tela', 'bloquear a tela', 'desbloqueado', 'computador desbloqueado', 'tela desbloqueada'] },
+    { agent: 'rh', keywords: ['rh', 'beneficio', 'ferias', 'holerite', 'ponto', 'colaborador', 'cadastro', 'dados cadastrais', 'alteracao de dados', 'convenio', 'comprovante', 'documentos pessoais', 'documento pessoal', 'atualizacao cadastral'] },
+    { agent: 'ti', keywords: ['senha', 'login', 'computador', 'notebook', 'impressora', 'internet', 'wifi', 'rede', 'cabo', 'sistema', 'chamado', 'suporte', 'equipamento', 'ti', 'ajuda da ti', 'suporte de ti', 'pc', 'gmail', 'google', 'workspace', 'email', 'conta google', 'pdf', 'arquivo', 'programa', 'abrir documento', 'abrir um documento', 'projetor', 'audio', 'som', 'hdmi', 'monitor', 'teclado', 'mouse', 'hd', 'formatar', 'windows', 'lento', 'travou', 'travando'] },
+    { agent: 'procedimentos', keywords: ['procedimento', 'politica', 'manual', 'treinamento', 'processo', 'fluxo', 'solicitacao', 'canal', 'responsavel', 'prazo', 'acompanhar'] }
   ];
 
-  const found = categories.find((category) => category.keywords.some((keyword) => normalized.includes(removeAccents(keyword))));
+  const found = categories.find((category) => category.keywords.some((keyword) => keywordMatches(normalized, keyword)));
   return found ? found.agent : 'geral';
 }
 
 function removeAccents(text) {
-  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Normaliza o texto para casamento de inten\u00e7\u00e3o: min\u00fasculas, sem acentos, sem
+// pontua\u00e7\u00e3o, com corre\u00e7\u00e3o de erros de digita\u00e7\u00e3o e sin\u00f4nimos frequentes.
+// \u00c9 a base para classificar o agente, pontuar a base e detectar sauda\u00e7\u00e3o/bloqueio.
+function normalizeForMatch(text) {
+  let t = removeAccents(String(text || '').toLowerCase());
+  t = t.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const fixes = [
+    [/\babrochamado\b/g, 'abrir chamado'],
+    [/\babro chamado\b/g, 'abrir chamado'],
+    [/\bwi fi\b/g, 'wifi'],
+    [/\binternete\b/g, 'internet'],
+    [/\bimprecora\b/g, 'impressora'],
+    [/\bimpresora\b/g, 'impressora'],
+    [/\bsenah\b/g, 'senha'],
+    [/\be mail\b/g, 'email'],
+    [/\bnet\b/g, 'internet']
+  ];
+  fixes.forEach(([re, rep]) => { t = t.replace(re, rep); });
+  return t;
+}
+
+// Verifica se uma palavra-chave aparece no texto j\u00e1 normalizado.
+// Termos curtos/amb\u00edguos (ex.: "ia", "hd", "rh", "cpf", "ti") s\u00f3 casam como
+// palavra inteira, evitando falsos positivos como "ia" dentro de "criar",
+// "fam\u00edlia" ou "pol\u00edcia". Termos maiores mant\u00eam o casamento por substring
+// (para cobrir plurais/varia\u00e7\u00f5es, ex.: "beneficio" em "beneficios").
+function keywordMatches(normalizedText, keyword) {
+  const kw = normalizeForMatch(keyword);
+  if (!kw) return false;
+  if (kw.length <= 3) {
+    return new RegExp('(^|\\s)' + kw + '($|\\s)').test(normalizedText);
+  }
+  return normalizedText.includes(kw);
+}
+
+// Sauda\u00e7\u00e3o/conversa inicial: s\u00f3 dispara quando a mensagem \u00e9 essencialmente uma
+// sauda\u00e7\u00e3o (evita capturar "bom dia, como abro chamado", que tem tema embutido).
+function isGreeting(normalized) {
+  const greetings = ['oi', 'ola', 'opa', 'eai', 'e ai', 'hey', 'hello', 'hi', 'bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'tudo bom', 'como vai', 'pode me ajudar', 'voce pode me ajudar', 'pode ajudar', 'preciso de ajuda', 'ajuda'];
+  const padded = ' ' + normalized + ' ';
+  const wasGreeting = greetings.some((g) => padded.includes(' ' + g + ' '));
+  if (!wasGreeting) return false;
+  let rest = padded;
+  greetings.forEach((g) => { rest = rest.split(' ' + g + ' ').join(' '); });
+  rest = rest.replace(/\b(por favor|copiloto|assistente|bot)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  return rest.length < 3;
+}
+
+// Bloqueio de conte\u00fado ofensivo/abusivo ou de pedidos perigosos/indevidos.
+// Heur\u00edstica por termos; a resposta de recusa nunca repete o conte\u00fado detectado.
+function isBlockedContent(normalized) {
+  const padded = ' ' + normalized + ' ';
+  // Ofensas/xingamentos: casamento por termo (a recusa nunca repete o conteúdo).
+  const ofensivos = ['idiota', 'imbecil', 'estupido', 'burro', 'otario', 'babaca', 'lixo', 'porcaria', 'merda', 'cala boca', 'vai se', 'vsf', 'fdp', 'arrombad', 'desgracad', 'filho da', 'viado', 'retardad', 'palhac'];
+  if (ofensivos.some((term) => padded.includes(' ' + term) || normalized.includes(term))) return true;
+
+  // Termos perigosos diretos (a menção isolada já basta para recusar).
+  const perigososDiretos = ['hackear', 'hacker', 'ransomware', 'espionar', 'sabotar'];
+  if (perigososDiretos.some((term) => normalized.includes(term))) return true;
+
+  // Padrões perigosos tolerantes a artigos/palavras intermediárias.
+  // O texto já vem normalizado (minúsculo, sem acento, sem pontuação).
+  const padroesPerigosos = [
+    /\b(criar|fazer|desenvolver|programar|escrever|montar|gerar)\s+(um\s+|uma\s+)?(malware|virus|ransomware|trojan|worm|spyware)\b/,
+    /\bdestruir\s+.*(equipamento|computador|maquina|arquivo|arquivos|sistema|hd|disco)\b/,
+    /\b(apagar|deletar|remover|sumir com|eliminar)\s+.*(prova|provas|evidencia|evidencias|registro|registros|log|logs|historico)\b/,
+    /\bburlar\s+.*(regra|regras|sistema|bloqueio|seguranca|controle|politica|restricao)\b/,
+    /\b(descobrir|descubro|roubar|roubo|quebrar|obter|pegar)\s+.*senha/,
+    /\bsenha\s+(de|da|do)\s+(outra|outro|outros|terceiro|terceiros|alguem|colega|colegas)\b/,
+    /\binvadir\s+.*(sistema|rede|computador|conta|servidor|maquina|celular|email)\b/,
+    /\b(acessar|ver|obter|pegar|espiar|invadir)\s+.*(dados|conta|contas|senha|senhas|informacao|informacoes|arquivo|arquivos|email|emails)\s+.*(terceiro|terceiros|outra pessoa|outras pessoas|alheio|alheios|de outro|de outra)\b/,
+    /\b(fraudar|falsificar|adulterar|forjar)\s+.*(documento|documentos|nota|notas|relatorio|dados|assinatura|comprovante)\b/
+  ];
+  return padroesPerigosos.some((re) => re.test(normalized));
+}
+
+// Triagem local executada antes de qualquer chamada \u00e0 IA. Garante que sauda\u00e7\u00f5es
+// e conte\u00fado bloqueado sejam tratados de forma consistente com IA online OU fallback.
+// Retorna uma resposta pronta (para curto-circuito) ou null para seguir o fluxo normal.
+function getLocalIntentResponse(question) {
+  const normalized = normalizeForMatch(question);
+  if (isBlockedContent(normalized)) {
+    return {
+      agent: 'geral',
+      plain: true,
+      content: 'N\u00e3o posso ajudar com solicita\u00e7\u00f5es ofensivas, ilegais, discriminat\u00f3rias ou que possam comprometer a seguran\u00e7a. Posso ajudar com d\u00favidas sobre TI, RH, Seguran\u00e7a da Informa\u00e7\u00e3o, Governan\u00e7a de IA e procedimentos internos.'
+    };
+  }
+  if (isGreeting(normalized)) {
+    return {
+      agent: 'geral',
+      plain: true,
+      content: 'Ol\u00e1! Posso ajudar com d\u00favidas sobre TI, RH, Seguran\u00e7a da Informa\u00e7\u00e3o, Governan\u00e7a de IA e procedimentos internos. Voc\u00ea pode digitar sua pergunta ou usar o bot\u00e3o Sugest\u00f5es.'
+    };
+  }
+  return null;
 }
 
 function getRelevantKnowledge(question, agent) {
-  const normalizedQuestion = removeAccents(question.toLowerCase());
+  const normalizedQuestion = normalizeForMatch(question);
   const agentFilter = agent === 'auto' ? classifyAgent(question) : agent;
 
   const scored = KNOWLEDGE_BASE.map((item) => {
     const keywordScore = item.palavrasChave.reduce((score, keyword) => {
-      const kw = removeAccents(keyword.toLowerCase());
+      const kw = normalizeForMatch(keyword);
+      if (!kw) return score;
       // Frases (palavras-chave com mais de uma palavra) são mais específicas
       // e valem mais pontos, evitando que itens genéricos "roubem" a resposta.
       const peso = kw.split(/\s+/).length * 2;
-      return normalizedQuestion.includes(kw) ? score + peso : score;
+      return keywordMatches(normalizedQuestion, keyword) ? score + peso : score;
     }, 0);
 
     const categoryScore = removeAccents(item.categoria.toLowerCase()).includes(agentFilter) ? 2 : 0;
@@ -493,15 +592,18 @@ function localFallbackResponse(question, agent, relevantKnowledge) {
   const hasMatch = relevantKnowledge.some((item) => item.score > 0);
 
   if (!hasMatch) {
+    // Se a pergunta parece de TI (mas sem procedimento específico), orienta o chamado;
+    // caso contrário, informa a limitação e lista os temas suportados.
+    const resposta = agent === 'ti'
+      ? 'Não encontrei um procedimento específico para essa solicitação. Para evitar orientação incorreta, recomendo abrir um chamado de TI informando equipamento, local e descrição do problema.'
+      : 'Não encontrei informação suficiente na base de conhecimento para responder com segurança. Posso ajudar com dúvidas sobre TI, RH, Segurança da Informação, Governança de IA e procedimentos internos.';
     return {
       agent,
       demo: true,
       content: [
         'Categoria: Atendimento',
         '',
-        'Resposta: Não encontrei orientação oficial suficiente na base de conhecimento para responder a essa pergunta com segurança. Para não correr o risco de passar uma informação incorreta, prefiro não inventar uma resposta.',
-        '',
-        'Orientação final: procure o setor responsável pelo assunto (TI, RH ou Segurança da Informação) pelos canais oficiais.'
+        'Resposta: ' + resposta
       ].join('\n')
     };
   }
@@ -562,8 +664,17 @@ async function handleSubmit(event) {
   history.push(userMessage);
   addMessageToScreen(userMessage);
   questionInput.value = '';
-  questionInput.style.height = 'auto'; // volta o campo à altura padrão
+  resetComposer(); // volta o campo à altura inicial e zera o contador
   saveHistory();
+
+  // Triagem local antes da IA: bloqueio de conteúdo indevido e saudação.
+  // Vale tanto para IA online quanto para o fallback, sem gastar chamada de API.
+  const intent = getLocalIntentResponse(question);
+  if (intent) {
+    pushAssistant(intent);
+    questionInput.focus();
+    return;
+  }
 
   try {
     setLoading(true);
@@ -730,11 +841,36 @@ questionInput.addEventListener('keydown', (event) => {
 });
 
 // Ajusta a altura do campo conforme o texto digitado.
+// Cresce suavemente até uma altura máxima e só então ativa o scroll interno.
 function autoResizeInput() {
   questionInput.style.height = 'auto';
-  questionInput.style.height = Math.min(questionInput.scrollHeight, 150) + 'px';
+  const maxHeight = window.innerWidth <= 599 ? 120 : 150;
+  const nextHeight = Math.min(questionInput.scrollHeight, maxHeight);
+  questionInput.style.height = nextHeight + 'px';
+  questionInput.style.overflowY = questionInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
 }
-questionInput.addEventListener('input', autoResizeInput);
+
+// Contador de caracteres (limite alinhado ao maxlength do textarea = 1000).
+const CHAR_LIMIT = 1000;
+const charCounter = document.querySelector('#charCounter');
+function updateCharCounter() {
+  if (!charCounter) return;
+  const len = questionInput.value.length;
+  charCounter.textContent = len + '/' + CHAR_LIMIT;
+  charCounter.classList.toggle('is-warn', len >= 800 && len < 950);
+  charCounter.classList.toggle('is-limit', len >= 950);
+}
+
+// Volta o campo ao estado inicial (altura + contador) após enviar/limpar.
+function resetComposer() {
+  autoResizeInput();
+  updateCharCounter();
+}
+
+questionInput.addEventListener('input', () => {
+  autoResizeInput();
+  updateCharCounter();
+});
 
 // Define o estado visual do status: 'demo', 'online' ou 'fallback'.
 // Atualiza todos os indicadores (sidebar + faixa mobile).
@@ -802,3 +938,4 @@ themeToggles.forEach((btn) => btn.addEventListener('click', toggleTheme));
 initTheme();
 updateConnectionStatus();
 renderChat();
+resetComposer(); // altura inicial do campo + contador em 0/1000
