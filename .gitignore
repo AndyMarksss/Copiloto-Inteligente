@@ -1,1 +1,25 @@
-git rm -r --cached .claude
+# Configurações locais de ferramentas
+.claude/
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Logs e temporários
+*.log
+*.tmp
+*.temp
+
+# Compactados
+*.zip
+*.rar
+*.7z
+
+# Dependências futuras
+node_modules/
+
+# Variáveis e chaves locais
+.env
+.env.local
+.env.*.local
