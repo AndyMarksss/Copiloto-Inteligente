@@ -93,6 +93,54 @@ body {
   transition: background 0.25s ease, color 0.25s ease;
 }
 
+/* Scrollbar global da página: mesmo padrão do chat (fino, arredondado, azul/ciano).
+   Firefox: scrollbar-width/color; Chrome/Edge: ::-webkit-scrollbar. */
+html, body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.55) transparent;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar { width: 12px; }
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.6), rgba(59, 130, 246, 0.55));
+  border-radius: 999px;
+  border: 3px solid transparent;   /* respiro ao redor do thumb */
+  background-clip: padding-box;
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.85));
+  background-clip: padding-box;
+}
+
+/* Tema escuro: track levemente escura + thumb azul/ciano mais claro.
+   O atributo data-theme fica no próprio <html>, por isso html[data-theme="dark"]. */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  scrollbar-color: rgba(96, 165, 250, 0.6) rgba(15, 23, 42, 0.35);
+}
+html[data-theme="dark"]::-webkit-scrollbar-track,
+html[data-theme="dark"] body::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.35);
+}
+html[data-theme="dark"]::-webkit-scrollbar-thumb,
+html[data-theme="dark"] body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.72), rgba(96, 165, 250, 0.68));
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+html[data-theme="dark"]::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.95), rgba(96, 165, 250, 0.9));
+  background-clip: padding-box;
+}
+
 button, textarea { font: inherit; }
 button { cursor: pointer; }
 h1, h2, h3, h4 { margin: 0; }
@@ -493,10 +541,31 @@ h1, h2, h3, h4 { margin: 0; }
   padding: 13px;
   overflow-y: auto;
 }
-.sp-list { scrollbar-width: thin; }
-.sp-list::-webkit-scrollbar { width: 6px; }
-.sp-list::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 999px; }
+/* Mesmo padrão visual do scroll do chat, em escala menor. */
+.sp-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.5) transparent;
+}
+.sp-list::-webkit-scrollbar { width: 8px; }
 .sp-list::-webkit-scrollbar-track { background: transparent; }
+.sp-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.6), rgba(59, 130, 246, 0.55));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.sp-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.82));
+  background-clip: padding-box;
+}
+[data-theme="dark"] .sp-list {
+  scrollbar-color: rgba(96, 165, 250, 0.6) transparent;
+}
+[data-theme="dark"] .sp-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.72), rgba(96, 165, 250, 0.68));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
 
 /* Mobile (base) : bottom sheet */
 .suggestions-overlay { background: rgba(6, 12, 24, 0.5); backdrop-filter: blur(2px); }
@@ -608,13 +677,45 @@ h1, h2, h3, h4 { margin: 0; }
   padding: 18px 16px;
   background: linear-gradient(180deg, var(--color-surface), var(--color-surface-2));
 }
-.chat-messages { scrollbar-width: thin; }
-.chat-messages::-webkit-scrollbar { width: 6px; }
-.chat-messages::-webkit-scrollbar-thumb {
-  background: var(--color-line);
+/* Scrollbar refinado da conversa: fino, arredondado e azul/ciano coerente com o tema.
+   Firefox usa scrollbar-width/color; Chrome/Edge usam ::-webkit-scrollbar. */
+.chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.55) transparent;
+  scrollbar-gutter: stable;
+}
+.chat-messages::-webkit-scrollbar { width: 10px; }
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
   border-radius: 999px;
 }
-.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.65), rgba(59, 130, 246, 0.6));
+  border-radius: 999px;
+  border: 2px solid transparent;   /* cria um respiro ao redor do thumb */
+  background-clip: padding-box;
+}
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.92), rgba(59, 130, 246, 0.85));
+  background-clip: padding-box;
+}
+
+/* Tema escuro: track levemente escura + thumb azul/ciano mais claro. */
+[data-theme="dark"] .chat-messages {
+  scrollbar-color: rgba(96, 165, 250, 0.6) rgba(15, 23, 42, 0.35);
+}
+[data-theme="dark"] .chat-messages::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.35);
+}
+[data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.75), rgba(96, 165, 250, 0.7));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+[data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.95), rgba(96, 165, 250, 0.9));
+  background-clip: padding-box;
+}
 
 .message {
   display: flex;
@@ -906,11 +1007,14 @@ h1, h2, h3, h4 { margin: 0; }
 .status-badge.online .status-dot { background: var(--color-success); }
 .status-badge.fallback { color: #c2410c; background: rgba(249, 115, 22, 0.18); }
 .status-badge.fallback .status-dot { background: #f97316; }
+.status-badge.ratelimit { color: #b45309; background: rgba(245, 158, 11, 0.20); }
+.status-badge.ratelimit .status-dot { background: var(--color-warning); }
 
 /* No fundo escuro da sidebar/topbar, clareia o texto dos badges */
 .sidebar .status-badge.demo, [data-theme="dark"] .status-badge.demo { color: #fcd98a; }
 .sidebar .status-badge.online, [data-theme="dark"] .status-badge.online { color: #7ff0cf; }
 .sidebar .status-badge.fallback, [data-theme="dark"] .status-badge.fallback { color: #ffb98a; }
+.sidebar .status-badge.ratelimit, [data-theme="dark"] .status-badge.ratelimit { color: #fcd98a; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }

@@ -654,6 +654,22 @@ function buildSummaryData() {
   };
 }
 
+// Identifica falhas de limite temporário de uso da IA (HTTP 429, rate limit,
+// cota/quota). Mantém-se específico: erros genéricos (500, rede, JSON inválido)
+// NÃO são tratados como limite temporário.
+function isRateLimitError(error) {
+  const msg = removeAccents(String((error && error.message) || error || '').toLowerCase());
+  return /(^|\D)429(\D|$)/.test(msg)
+    || msg.includes('rate limit')
+    || msg.includes('ratelimit')
+    || msg.includes('too many requests')
+    || msg.includes('resource_exhausted')
+    || msg.includes('quota')
+    || msg.includes('cota')
+    || msg.includes('limite de uso')
+    || msg.includes('limite temporario');
+}
+
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -684,15 +700,23 @@ async function handleSubmit(event) {
     if (!isDemoMode()) setConnectionState('online');
   } catch (error) {
     // A IA real falhou: avisa de forma amigável e cai para a resposta local simulada.
-    console.warn('Falha ao consultar a IA. Usando resposta local.', error);
-    if (!isDemoMode()) setConnectionState('fallback');
+    const rateLimited = isRateLimitError(error);
+    // Log técnico útil para desenvolvimento (não exibido ao usuário).
+    console.warn(
+      'Falha ao consultar a IA. Usando fallback local. Motivo: ' +
+        (rateLimited ? 'limite temporário da API Gemini (429).' : ((error && error.message) || 'erro inesperado.')),
+      error
+    );
+    // Status específico para limite temporário; genérico para os demais erros.
+    if (!isDemoMode()) setConnectionState(rateLimited ? 'ratelimit' : 'fallback');
+
     const agent = selectedAgent === 'auto' ? classifyAgent(question) : selectedAgent;
     const local = localFallbackResponse(question, agent, getRelevantKnowledge(question, selectedAgent));
-    // Insere um aviso amigável no início do corpo da resposta.
-    local.content = local.content.replace(
-      /Resposta:\s*/i,
-      'Resposta: A IA online não respondeu agora, então usei a base de conhecimento local para te ajudar. '
-    );
+    // Aviso amigável no início do corpo da resposta, conforme o tipo de falha.
+    const aviso = rateLimited
+      ? 'A IA online foi acionada, mas atingiu um limite temporário de uso no momento. Para não interromper o atendimento, utilizei a base de conhecimento local simulada. Tente novamente em alguns instantes para obter uma resposta gerada diretamente pela IA. '
+      : 'A IA online não respondeu agora, então usei a base de conhecimento local para te ajudar. ';
+    local.content = local.content.replace(/Resposta:\s*/i, 'Resposta: ' + aviso);
     pushAssistant(local);
   } finally {
     setLoading(false);
@@ -872,16 +896,17 @@ questionInput.addEventListener('input', () => {
   updateCharCounter();
 });
 
-// Define o estado visual do status: 'demo', 'online' ou 'fallback'.
+// Define o estado visual do status: 'demo', 'online', 'fallback' ou 'ratelimit'.
 // Atualiza todos os indicadores (sidebar + faixa mobile).
 function setConnectionState(state) {
   const labels = {
     demo: 'Modo demonstração',
     online: 'IA conectada',
-    fallback: 'Usando fallback local'
+    fallback: 'Usando fallback local',
+    ratelimit: 'Atingiu o limite temporário de uso da IA'
   };
   statusBadges.forEach((badge) => {
-    badge.classList.remove('demo', 'online', 'fallback');
+    badge.classList.remove('demo', 'online', 'fallback', 'ratelimit');
     badge.classList.add(state);
   });
   statusTexts.forEach((el) => { el.textContent = labels[state] || 'Verificando...'; });

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node \"C:/Users/ander/AppData/Local/Temp/claude/c--Users-ander-OneDrive-Documentos-Faculdade-Curso-Gradua--o-IA-e-Automa--o-Digital-2--Semestre-02---IA-Generativa-Aplicada-ao-Desenvolvimento-copiloto-corporativo-inteligente/96b63e1a-44b6-42bc-868b-fca3748a5b89/scratchpad/fix.mjs\")",
+      "Bash(node \"C:/Users/ander/AppData/Local/Temp/claude/c--Users-ander-OneDrive-Documentos-Faculdade-Curso-Gradua--o-IA-e-Automa--o-Digital-2--Semestre-02---IA-Generativa-Aplicada-ao-Desenvolvimento-copiloto-corporativo-inteligente/96b63e1a-44b6-42bc-868b-fca3748a5b89/scratchpad/eq.mjs\")",
+      "Bash(node C:/Users/ander/AppData/Local/Temp/claude/c--Users-ander-OneDrive-Documentos-Faculdade-Curso-Gradua--o-IA-e-Automa--o-Digital-2--Semestre-02---IA-Generativa-Aplicada-ao-Desenvolvimento-copiloto-corporativo-inteligente/96b63e1a-44b6-42bc-868b-fca3748a5b89/scratchpad/gmail.mjs)"
+    ]
+  }
+}
